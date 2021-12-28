@@ -1,5 +1,6 @@
 package com.github.levphilippov.msscbrewerygateway.config;
 
+import org.springframework.cloud.client.circuitbreaker.EnableCircuitBreaker;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
@@ -20,8 +21,13 @@ public class LoadBalancedRoutesConfig {
                                 "/api/v1/customers/**")
                         .uri("lb://beer-order-service"))
                 .route(r-> r.path("/api/v1/beer/*/inventory*")
+                        .filters(f->f.circuitBreaker(c-> c.setName("inventoryCB")
+                                .setFallbackUri("forward:/inventory-failover")
+                                .setRouteId("inv-failover")
+                                ))
                         .uri("lb://inventory-service"))
+                .route(r-> r.path("/inventory-failover*")
+                        .uri("lb://inventory-failover-service"))
                 .build();
     }
-
 }
